@@ -336,7 +336,7 @@ func NewListWatchFromClient(c kcache.Getter, resource string, namespace string, 
 }
 
 func init() {
-        flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
+//        flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
         flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
         flag.StringVar(&metadataServiceURL, "metadata_service", "", "The address of the Kubeflow Metadata GRPC service. Required.")
         flag.StringVar(&resourcelist, "resourcelist", "", "The path of a JSON file with a list of Kubernetes GroupVersionKind to be watched. Required.")
