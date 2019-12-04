@@ -11,4 +11,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Build the Docker image
-      run: docker build . --file ./logs/logstash/logstash_7.0.1/Dockerfile --tag ocdr/dkube-testlogstash:jafar
+      run: 
+          docker build . --file ./logs/logstash/logstash_7.0.1/Dockerfile --tag ocdr/dkube-logstash:jafar
+          docker push ocdr/dkube-logstash:jafar
