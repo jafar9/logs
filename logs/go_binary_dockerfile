@@ -1,0 +1,6 @@
+FROM golang:1.10.3
+RUN apt-get update && apt-get install -y apt-utils
+RUN apt-get install -y vim
+COPY . /go/src/streamer
+RUN cd /go/src/streamer && go build -o /streamer
+CMD ["/streamer"]

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Job details</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>    
+    <script src="http://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+    <style type="text/css">
+      body{
+        font-family: "Roboto", "Helvetica", "Arial";
+      }
+      .nav-pills .nav-link.active, .nav-pills .show.nav-link {
+        background-color: #eff1f4;
+        color:black;
+      }
+      .table-bordered td, .table-bordered th{
+        border:0;
+      }
+      .nav-pills .nav-link.active{
+        background-color: #454648;
+        color: white;
+      }
+      a{
+        color: #747474;
+        font-weight: 600;
+        font-size: 15px;
+      }
+      div.fixed {
+       position: fixed;
+        top: 50%;
+        left:50%;
+      }
+      .table td{
+        font-size:14px;
+        background-color: white;
+      }
+      .table tr{
+        padding-bottom: 20px;
+      }
+      .table-bordered td, .table-bordered th{
+        border-bottom: 3px solid rgba(224, 224, 224, 1) 
+      }
+      .card-header{
+        border-bottom: 0px;
+      }
+      p{
+        margin-bottom: 0.5rem;
+        font-size: 14px;
+        font-family: "sans-serif";
+      }
+      div.fixed_down {
+             position: fixed;
+             bottom: 7%;
+             right: 0;
+         }
+      div.fixed_top {
+             position: fixed;
+             top: 10%;
+             right: 0;
+      }
+      .table-sm td, .table-sm th{
+        padding: 0.5rem
+
+      } 
+    </style>
+  </head>
+  <body style="background: #eff1f4">
+    <div class="container-fluid" style="background: #eff1f4;">
+      <ul class="nav nav-pills flex-column flex-sm-row" id="myTab" role="tablist" style="background-color: #363636;">
+        <li class="nav-item flex-sm-fill text-sm-center">
+          <a class="nav-link active" id="db-tab" data-toggle="tab" href="#dashboard" role="tab" aria-controls="dashboard" aria-selected="true">
+            DashBoard
+          </a>
+        </li>
+        <li class="nav-item flex-sm-fill text-sm-center">
+          <a class="nav-link" id="tb-tab" data-toggle="tab" href="#tensorboard" role="tab" aria-controls="tensorboard" aria-selected="false" onclick="checkIframeLoaded();">
+            TensorBoard
+          </a>
+        </li>
+        <li class="nav-item flex-sm-fill text-sm-center">
+          <a class="nav-link" id="ru-tab" data-toggle="tab" href="#resource" role="tab" aria-controls="resource" aria-selected="false">
+            Resource Utilization
+          </a>
+        </li>
+        <li class="nav-item flex-sm-fill text-sm-center">
+          <a class="nav-link" id="logs-tab" data-toggle="tab" href="#logs" role="tab" aria-controls="logs" aria-selected="false" onclick="logloading();">
+            Logs
+          </a>
+        </li>
+      </ul>
+      <!-- Tab panes -->
+    <div class="tab-content">
+  <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="db-tab">
+      <h2><small id="jobname"></small></h2> 
+      <div>
+        <div class="d-flex justify-content-around bg-white mb-3">
+          <div class="p-2">
+            <div class="text-muted small">Status</div>
+            <div id="status"></div>
+          </div>
+          <div class="p-2">
+            <div class="text-muted small">Step</div>
+            <div id="step"></div>
+          </div>
+          <div class="p-2">
+            <div class="text-muted small">Epoch</div>
+            <div id="epoch"></div>
+          </div>
+          <div class="p-2">
+            <div class="text-muted small">Train Accuracy</div>
+            <div id="train_accuracy">NA</div>
+          </div>
+          <div class="p-2">
+            <div class="text-muted small">Train Loss</div>
+            <div id="train_loss">NA</div>
+          </div>
+          <div class="p-2">
+            <div class="text-muted small">Eval Accuracy</div>
+            <div id="eval_accuracy">NA</div>
+          </div>
+          <div class="p-2">
+            <div class="text-muted small">Eval Loss</div>
+            <div id="eval_loss">NA</div>
+          </div>
+          <div class="p-2">
+            <div class="text-muted small">Start Time</div>
+            <div id="start_time" data-toggle="tooltip" data-placement="bottom" data-html="true"></div>
+          </div>
+          <div class="p-2" id="end">
+            <div class="text-muted small">End Time</div>
+            <div id="end_time" data-toggle="tooltip" data-placement="bottom" data-html="true"></div>
+          </div>
+          <div class="p-2">
+            <div class="text-muted small">Duration</div>
+            <div id="duration"></div>
+          </div>         
+        </div>
+        <div class="row">
+          <div class="col-lg-6 col-md-6">
+            <div class="card d-flex justify-content-around">
+              <div class="card-header  small" style="font-size: 15px">
+                <b>Input</b>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover table-sm">
+                  <tbody>
+                    <tr>
+                      <td class="text-muted small">Framework</td>
+                      <td style="color: #333" id="framework"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Gpus</td>
+                      <td style="color: #333" id="gpus"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Workers</td>
+                      <td style="color: #333" id="workers"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Container</td>
+                      <td style="color: #333" id="Container"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">RDMA</td>
+                      <td style="color: #333" id="rdma"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Models</td>
+                      <td style="color: #333" id="model"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Datasets</td>
+                      <td style="color: #333" id="dataset"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Workspace</td>
+                      <td style="color: #333" id=workspace></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Tags</td>
+                      <td style="color: #333" id="tags"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Parameters</td>
+                       <td class="text-muted small"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">&nbsp;&nbsp;&nbsp;&nbsp;Steps</td>
+                      <td style="color: #333" id="steps"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">&nbsp;&nbsp;&nbsp;&nbsp;Epochs</td>
+                      <td style="color: #333" id="epoch1"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">&nbsp;&nbsp;&nbsp;&nbsp;Btachsize</td>
+                      <td style="color: #333" id="batch"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">&nbsp;&nbsp;&nbsp;&nbsp;Custom</td>
+                      <td style="color: #333" id="custom"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div><br/>
+          <div class="col-lg-6 col-md-6">
+            <div class="card d-flex justify-content-around">
+              <div class="card-header  small" style="font-size: 15px">
+                <b >Verion Information</b>
+              </div>
+              <div class="list-group list-group-flush">
+                <table class="table table-bordered table-hover table-sm">
+                  <tbody>
+                    <tr>
+                      <td class="text-muted small">cuda</td>
+                      <td style="color: #333" id="cuda"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Dkube</td>
+                      <td style="color: #333" id="dkube"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted small">Nvidia</td>
+                      <td style="color: #333" id="nvidia"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card d-flex justify-content-around" style="margin-top: 10px;">
+              <div class="card-header  small" style="font-size: 15px">
+                <b >Pods Information</b>
+              </div>
+              <div class="podsinfo">
+                <div id="pods_table"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  </div>
+  <div class="tab-pane fade" id="tensorboard" role="tabpanel" aria-labelledby="tb-tab">
+    <div class="spinner-border fixed text-dark" role="status" style="width: 3rem; height: 3rem;" id="iframeloading">
+            <span class="sr-only">Loading...</span>
+    </div>
+    <div class="embed-responsive embed-responsive-16by9">
+        <iframe class="embed-responsive-item" src="https://192.168.50.217:32222/dkube/v2/aa7221df-0c87-4731-b8da-29daade537d2/tb/" allowfullscreen id="myframe"></iframe>
+    </div>
+  </div>
+  <div class="tab-pane fade" id="resource" role="tabpanel" aria-labelledby="ru-tab">Ru</div>
+  <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+     <div class="container-fluid">
+      <div class="row">
+         <div class="col-lg-1 col-sm-1 col-md-1 col-xl-1">
+         </div>
+         <div class="col-lg-10 col-md-10 col-sm-10 col-xl-10">
+            <br/>
+            <div id="mydiv">
+
+            </div>
+         </div>
+      </div>
+    </div>  
+</div>
+    </div>
+      <script>
+      var check=""
+      var logurl="wss://192.168.50.217:32222/dkube/v2/ext/users/ocdkube/class/training/jobs/viv-job/logs"
+      const connection = new WebSocket(logurl)
+      var len;
+      var prev=0;
+      var render=0;
+      $(window).scroll(function() {
+          if($(window).scrollTop() + $(window).height() == $(document).height()) {
+              downArrow()
+         }
+      });
+
+      function downArrow(){
+        console.log(render)
+         render++;
+         connection.send(render)
+         
+       }
+        function logloading(){
+          var check="log"
+          connection.send(render)
+          connection.onerror = error => {
+               console.log(`WebSocket error: ${error}`)
+          }
+              connection.onmessage = e => {
+                result=JSON.parse(e.data)
+                for(i=0;i< result.Logsdata.length;i++){
+                  var para = document.createElement("p");
+                  var node = document.createTextNode(result.Logsdata[i]);
+                  para.appendChild(node);
+                  var element = document.getElementById("mydiv");
+                  element.appendChild(para);
+                }
+              }
+              console.log("done")
+      }
+        $(document).ready(function(){
+          var url="https://192.168.50.217:32222/dkube/v2/users/ocdkube/jobs/class/training/job/viv-job/collection"
+          var AuthStr="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTc0ODU4NjcsInJvbGUiOiJvcGVyYXRvciIsInVzZXJuYW1lIjoib2Nka3ViZSJ9.2JnOg79M0lVbCW-k2KxMZpxyoaQGEYLJfzDAMh04D4c"
+          var Alloworigin="*"
+          setInterval(function(){
+             axios.get(url, { headers: { "Authorization": AuthStr ,"access-control-allow-origin": Alloworigin } })
+            .then(function (response) {
+              var job = response.data.data.job
+              document.getElementById("jobname").innerHTML=""
+              document.getElementById("jobname").innerHTML=job.name + " | " + job.parameters.generated.jobid
+              document.getElementById("status").innerHTML=""
+              document.getElementById("status").innerHTML=job.parameters.generated.status.state.toLowerCase()
+              var timestamps = job.parameters.generated.timestamps
+              start = timestamps.start.split(" ");
+              document.getElementById("start_time").innerHTML=""
+              document.getElementById("start_time").innerHTML=start[0]
+              $("#start_time").mouseenter(function () {
+                    var $this = $(this);
+                    $this.attr('title', timestamps.start);
+              });   
+              if(timestamps.end == undefined){
+                document.getElementById("end").style.display="none"
+              }else{
+                end = timestamps.end.split(" ");
+                document.getElementById("end_time").innerHTML=""
+                document.getElementById("end_time").innerHTML=end[0]
+                document.getElementById("end").style.display="block"
+                $("#end_time").mouseenter(function () {
+                    var $this = $(this);
+                    $this.attr('title', timestamps.end);
+                });  
+              }
+              var time=""
+              duration=timestamps.duration
+              if(duration.days != undefined){
+                time=duration.days + "d "
+              }
+              if(duration.hours != undefined){
+                time=time+duration.hours + "h "
+              }
+              if(duration.minutes != undefined){
+                time=time+duration.minutes + "m "
+              }
+              if(duration.seconds != undefined){
+                time=time+duration.seconds + "s"
+              }
+              document.getElementById("duration").innerHTML=time
+              var training=job.parameters.training
+              var dataset="NA"
+              if(training.datasets.length >0){
+                dataset=training.datasets
+              }
+              var model="NA"
+              if(training.models.length >0){
+                model=training.models
+              }
+              var tag="No Tags"
+              if(training.tags.length >0){
+                tag=training.tags
+              }
+              var gpus="NA"
+              if(training.ngpus != undefined){
+                gpus=training.ngpus
+              }
+              var workers="NA"
+              if(training.nworkers != undefined){
+                workers=training.nworkers
+              }
+              document.getElementById("dataset").innerHTML=dataset
+              document.getElementById("workspace").innerHTML=training.workspace.program
+              document.getElementById("model").innerHTML=model
+              document.getElementById("tags").innerHTML=tag
+              document.getElementById("rdma").innerHTML=training.rdma
+              document.getElementById("Container").innerHTML=training.executor.choice
+              document.getElementById("framework").innerHTML=training.executor.dkube.framework.choice+":"+training.executor.dkube.framework.details.tfversion
+              document.getElementById("steps").innerHTML=training.hyperparams.steps
+              document.getElementById("batch").innerHTML=training.hyperparams.batchsize
+              document.getElementById("epoch1").innerHTML=training.hyperparams.epochs
+              var dict = {};
+              for(var i=0;i<training.hyperparams.customkv.length;i++){
+                a=Object.values(training.hyperparams.customkv[i])
+                dict[a[0]]=a[1]
+              }
+              var myJSON = JSON.stringify(dict);
+              document.getElementById("custom").innerHTML=myJSON
+              document.getElementById("gpus").innerHTML=gpus
+              document.getElementById("workers").innerHTML=gpus
+              var versions=job.parameters.generated.versions
+              document.getElementById("cuda").innerHTML=versions.cuda
+              document.getElementById("dkube").innerHTML=versions.dkube
+              document.getElementById("nvidia").innerHTML=versions.nvidia
+              var pod=response.data.data.workers
+              if (pod.length > 0){
+                var table_data = '<table class="table  table-hover table-sm">';
+                  table_data += '<tr>';
+                  table_data += '<th>Name</th><th>Status</th><th>Role</th><th>Event</th>';
+                  table_data += '</tr>';
+                  table_data += '</tr>';
+                  for(var i=0;i < pod.length;i++){
+                    poddata=pod[i]
+                    table_data += '<tr>';
+                    table_data += '<td>'+poddata.name+'</td><td>'+poddata.status+'</td><td>'+poddata.role+'</td><td>'+poddata.event+'</th>';
+                    table_data += '</tr>';
+                  }
+                  table_data += '</table>';  
+                  document.getElementById("pods_table").innerHTML="";
+                  document.getElementById("pods_table").innerHTML='<div id="pods1_table"></div>';
+                  $('#pods1_table').html(table_data);
+              }
+            })
+            .catch(function (error) {
+              console.log(error)
+            })
+          }, 3000)
+          //var stepurl="https://192.168.200.44:32222/dkube/v2/users/ocdkube/jobs/class/training/job/j1/collection"
+          var stepurl = "https://192.168.50.217:32222/dkube/v2/prometheus/api/v1/query?query=topk(2,step{jobid='GnwL50',mode='eval'})"
+          var Alloworigin="*"
+          setInterval(function(){
+             axios.get(stepurl, { headers: { "Authorization": AuthStr ,"access-control-allow-origin": Alloworigin, withCredentials: true} })
+            .then(function (response) {
+              document.getElementById("epoch").innerHTML=response.data.data.result[0].metric.epoch
+              document.getElementById("step").innerHTML=response.data.data.result[0].value[1]
+              })
+            .catch(function (error) {
+                console.log(error)
+            })
+          }, 3000)
+          var accuracyurl = "https://192.168.200.44:32222/dkube/v2/prometheus/api/v1/query?query=accuracy{jobid=F6hyjT,mode=~train|eval,step=~9900|10000}"
+          var Alloworigin="*"
+          setInterval(function(){
+             axios.get(stepurl, { headers: { "Authorization": AuthStr ,"access-control-allow-origin": Alloworigin, withCredentials: true} })
+            .then(function (response) {
+                console.log(response.data.data.result[0].metric.epoch)
+                console.log(response.data.data.result[0].value[1])
+              document.getElementById("epoch").innerHTML=response.data.data.result[0].metric.epoch
+              document.getElementById("step").innerHTML=response.data.data.result[0].value[1]
+              })
+            .catch(function (error) {
+                console.log(error)
+            })
+          }, 3000)
+        })
+function checkIframeLoaded(){
+          var check="iframe"
+          document.getElementById("loading").style.display="block"
+          $("#myframe").on("load", function(){
+            document.getElementById("loading").style.display="none"
+          });
+}
+      </script>
+    </div>
+  </body>
+</html>

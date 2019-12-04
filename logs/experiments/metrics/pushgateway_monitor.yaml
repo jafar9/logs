@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: prometheus
+    app.kubernetes.io/deploy-manager: ksonnet
+    ksonnet.io/component: monitoring
+    prometheus: kube-prometheus
+  name: pushgateway
+  namespace: dkube
+spec:
+  endpoints:
+  - interval: 15s
+    port: pushgateway
+    honorLabels: true
+    honor_timestamps: true
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+    - dkube
+  selector:
+    matchLabels:
+      k8s-app: pushgateway
+

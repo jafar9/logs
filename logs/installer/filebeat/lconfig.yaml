@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: dkube
+  labels:
+    app: logstash
+data:
+  logstash.conf: |-
+    input{
+      beats {
+       port => 5044
+      }
+    }
+    
+    filter {
+       mutate {
+         add_field => {
+            "[@metadata][role]"=> "%{[tfrole]}"
+            "[@metadata][index]" => "%{[tfindex]}"
+            "[@metadata][username]" => "%{[username]}"
+             "[@metadata][jobname]" => "%{[jobname]}"
+          }
+       }
+    }
+
+    output {
+        file{
+           path => "/var/log/dkube/%{[@metadata][username]}/%{[@metadata][jobname]}/logs.txt"
+           codec => line{format => "%{@timestamp}  %{[@metadata][role]}-%{[@metadata][index]}  %{message}"}
+         }
+    }
+

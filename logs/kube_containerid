@@ -1,0 +1,19 @@
+#!/bin/bash
+pods=$(kubectl get pods -n test2)
+
+yamls=$(kubectl get pod workflow-controller-58555ffd9d-rhkxg -n dkube -o json | jq -j '.status.containerStatuses[] |.name + "//" + .containerID+"//"')
+
+
+echo $yamls
+
+IFS='//' read -r -a array <<< "$yamls"
+
+
+if [ "$array[0]" == "filebeat" ]; then
+    containerid=${array[10]}
+else
+    containerid=${array[4]}
+fi
+
+
+echo $containerid

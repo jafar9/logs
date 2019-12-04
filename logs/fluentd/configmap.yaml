@@ -1,0 +1,72 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: dkube
+data:
+  fluent.conf: |
+    <match fluent.**>
+      @type null
+    </match>
+
+    # here we read the logs from Docker's containers and parse them
+    <source>
+      @type tail
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      time_format %Y-%m-%dT%H:%M:%S.%NZ
+      tag kubernetes.*
+      format json
+      read_from_head true
+    </source>
+    
+    # we use kubernetes metadata plugin to add metadatas to the log
+    <filter kubernetes.**>
+        @type kubernetes_metadata
+    </filter>
+
+    #Select pods which lable has logger: filebeat as a key
+    <filter kubernetes.**>
+        @type grep
+        <regexp>
+            key $.kubernetes.labels.logger
+            pattern filebeat
+        </regexp>
+    </filter>
+
+    #creating new records and removing unused keys
+    <filter kubernetes.**>
+       @type record_modifier
+       enable_ruby
+       <record>
+           jobname ${record.dig("kubernetes", "labels", "jobname")}
+           username ${record.dig("kubernetes", "labels", "username")}
+           role ${record.dig("kubernetes", "labels", "tf-job-role")}-${record.dig("kubernetes", "labels", "tf-replica-index")}
+           jobuuid ${record.dig("kubernetes", "labels", "jobuuid")}
+           container ${record.dig("kubernetes", "container_name")}
+           message ${record.dig("log")}
+       </record>
+       remove_keys log, stream, docker,kubernetes
+    </filter>
+
+    #s3 output section
+    <match kubernetes.**>
+      @type s3
+      aws_key_id dkube
+      aws_sec_key l06dands19s
+      s3_endpoint http://dkube-storage.dkube:9000/
+      s3_bucket dkube
+      path system/logs/test/${username}/${jobname}/${container}
+      s3_object_key_format %{path}/cluster-log-%{index}.%{file_extension}
+      store_as text
+      force_path_style true
+      <buffer username,time, jobname, container>
+        @type file
+        path /var/log/td-agent/s3/${username}/${jobname}/${container}
+        timekey 1m            # Flush the accumulated chunks every hour
+        timekey_wait 1m        # Wait for 60 seconds before flushing
+        timekey_use_utc true   # Use this option if you prefer UTC timestamps
+        chunk_limit_size 256m  # The maximum size of each chunk
+      </buffer>
+    </match> 

@@ -1,0 +1,87 @@
+apiVersion: v1
+data:
+  fluent.conf: |
+    <source>
+     @type tail
+     path /var/log/containers/*.log
+     pos_file /var/log/fluentd-containers-jobs.log.pos
+     time_key time
+     time_format %Y-%m-%dT%H:%M:%S
+     refresh_interval 1s
+     open_on_every_update true
+     enable_stat_watcher false
+     rotate_wait 2
+     tag kubernetes_jobs.*
+     format json
+     read_from_head true
+    </source>
+
+    <filter kubernetes_jobs.**>
+       @type kubernetes_metadata
+    </filter>
+
+    <filter kubernetes_jobs.**>
+       @type grep
+       <regexp>
+          key $.kubernetes.labels.logger
+          pattern /(^dkubepl|^dkube)/
+       </regexp>
+    </filter>
+
+    <filter kubernetes_jobs.**>
+        @type record_modifier
+        enable_ruby
+        <record>
+          plpath pllauncher
+          training_path jobs
+          jobname ${record.dig("kubernetes", "labels", "jobname") ? record.dig("kubernetes", "labels", "jobname") : record.dig("kubernetes", "labels", "runid") }
+
+          fpath ${record.dig("kubernetes", "labels", "runid")? record.dig("plpath") : record.dig("training_path")}
+
+          username ${record.dig("kubernetes", "labels", "username") ? record.dig("kubernetes", "labels", "username") : record.dig("kubernetes", "labels", "workflows_argoproj_io/workflow") }
+
+          container ${record.dig("kubernetes", "container_name")}
+
+          training_log ${record.dig("kubernetes", "labels", "tf-replica-type")}-${record.dig("kubernetes", "labels", "tf-replica-index")}:  ${record.dig("log")}
+
+          message ${record.dig("kubernetes", "labels", "runid") ? record.dig("log") : record.dig("training_log") } 
+        </record>
+        remove_keys log, stream, docker, kubernetes
+    </filter>
+
+    <match kubernetes_jobs.**>
+       @type s3
+       aws_key_id dkube
+       aws_sec_key l06dands19s
+       s3_endpoint http://dkube-minio-server.dkube:9000/
+       s3_bucket dkube
+       path system/logs/${fpath}/${username}/${jobname}/${container}
+       s3_object_key_format %{path}/job-log-%{index}.%{file_extension}
+       store_as text
+       force_path_style true
+       <format>
+         @type single_value
+         message_key message
+         add_newline false
+       </format>
+       <buffer username, jobname, container, fpath>
+         @type file
+         path /var/log/td-agent/jobs/${fpath}/${username}/${jobname}/${container}
+         timekey 10s           
+         timekey_wait 10s  
+         timekey_use_utc true  
+         chunk_limit_size 256m
+         flush_thread_count 8
+         retry_forever true
+         overflow_action throw_exception
+         retry_type exponential_backoff
+         retry_exponential_backoff_base 2
+         flush_mode immediate
+         flush_at_shutdown true
+         queue_limit_length 10000
+       </buffer>
+    </match>
+kind: ConfigMap
+metadata:
+  name: dkube-log-collector
+  namespace: dkube

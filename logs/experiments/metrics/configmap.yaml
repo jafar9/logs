@@ -1,0 +1,161 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dkube-metric-collector
+  namespace: dkube
+data:
+  fluent.conf: |
+    #<source>
+    #@type prometheus
+    #</source>
+    
+    # <source>
+    #   @type monitor_agent
+    # </source>
+    #<source>
+    #   @type forward
+    #</source>
+    
+    # input plugin that collects metrics from MonitorAgent
+    #<source>
+    #  @type prometheus_monitor
+    #  <labels>
+    #    host ${hostname}
+    #  </labels>
+    #</source>
+    
+    # input plugin that collects metrics for output plugin
+    #<source>
+    #  @type prometheus_output_monitor
+    #  interval 10
+    #  <labels>
+    #    host ${hostname}
+    #  </labels>
+    #</source>
+    #
+    # input plugin that collects metrics for in_tail plugin
+    # <source>
+    #   @type prometheus_tail_monitor
+    #   <labels>
+    #     host ${hostname}
+    #   </labels>
+    # </source>
+    
+    <source>
+      @type tail
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers-accuracy.log.pos
+      time_format %Y-%m-%dT%H:%M:%S
+      tag kubernetes_accuracy.*
+      refresh_interval 1s
+      open_on_every_update true
+      enable_stat_watcher false
+      rotate_wait 2
+      @label @ACCURACY
+      format json
+      read_from_head true
+    </source>
+
+    <label @ACCURACY>
+        <filter kubernetes_accuracy.**>
+           @type kubernetes_metadata
+        </filter>
+
+        <filter kubernetes_accuracy.**>
+            @type grep
+            <regexp>
+                key $.kubernetes.labels.logger
+                pattern /^dkube$/
+            </regexp>
+        </filter>
+
+        <filter kubernetes_accuracy.**>
+            @type grep
+            <regexp>
+               key $.log
+               pattern /(.*) = (.*),/
+            </regexp>
+        </filter>
+ 
+
+        #<filter kubernetes_accuracy.**>
+        #    @type grep
+        #    <regexp>
+        #        key log
+        #        pattern /accuracy/
+        #    </regexp>
+        #</filter>
+
+        <filter kubernetes_accuracy.**>
+          @type parser
+          key_name $.log
+          reserve_data true
+          remove_key_name_field true
+          suppress_parse_error_log true
+          <parse>
+            @type regexp
+            expression /^(.*):(.*):((.*)])?((.*):)?(?<message>(.*))$/
+          </parse>
+        </filter>
+
+        <filter kubernetes_accuracy.**>
+           @type record_modifier
+           enable_ruby
+           <record>
+                 escaped_tag ${record["message"].gsub(' ', '')}
+           </record>
+        </filter>
+
+        #<filter kubernetes_accuracy.**>
+        #    @type grep
+        #    <regexp>
+        #        key escaped_tag
+        #        pattern /accuracy=/
+        #    </regexp>
+        #</filter>
+
+        <filter kubernetes_accuracy.**>
+           @type parser
+           key_name $.escaped_tag
+           reserve_data true
+           remove_key_name_field true
+           suppress_parse_error_log true
+           <parse>
+             @type ltsv
+             delimiter_pattern /,/
+             label_delimiter  =
+           </parse>
+        </filter>
+
+        <filter kubernetes_accuracy.**>
+           @type record_modifier
+           enable_ruby
+           <record>
+               jobname ${record.dig("kubernetes", "labels", "jobname")}
+               username ${record.dig("kubernetes", "labels", "username")}
+               jobid ${record.dig("kubernetes", "labels", "jobid")}
+               metrics ${record.dig("kubernetes", "labels", "metrics")}
+               #step ${record.dig("step").to_i}
+               #accuracy ${record.dig("accuracy").to_f}
+           </record>
+           remove_keys log, stream, docker, kubernetes, escaped_tag, message
+        </filter>
+
+        <match kubernetes_accuracy.**>
+        #    @type stdout
+            @type copy
+            <store>
+             @type http
+             endpoint http://192.168.200.108:9401/dkube/v2/metrics
+             open_timeout 2
+             <format>
+                    @type json
+                    #fields accuracy,jobname,username,step,loss, jobid
+             </format>
+             <buffer>
+               flush_interval 10s
+             </buffer>
+            </store>
+        </match>
+    </label>
+

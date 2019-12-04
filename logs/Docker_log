@@ -1,0 +1,9 @@
+#!/bin/bash
+dockvol=$(sudo docker info | grep Docker)
+echo $dockvol
+IFS='//' read -r -a array1 <<< "$dockvol"
+echo ${#array1[@]}
+for i in ${!array1[@]}
+do
+  echo ${array1[$i]}
+done

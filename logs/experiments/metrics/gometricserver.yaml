@@ -1,0 +1,115 @@
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"github.com/gorilla/mux"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
+	//	"github.com/prometheus/client_golang/prometheus"
+	//	"github.com/prometheus/client_golang/prometheus/push"
+)
+
+func trimQuote(s string) string {
+	if len(s) > 0 && s[0] == '"' {
+		s = s[1:]
+	}
+	if len(s) > 0 && s[len(s)-1] == '"' {
+		s = s[:len(s)-1]
+	}
+	return s
+}
+
+func main() {
+	router := mux.NewRouter()
+	var (
+		listenAddress = flag.String("web.listen-address", "192.168.200.108:9401", "Address to listen on for web interface and telemetry.")
+	)
+	router.HandleFunc("/dkube/v2/metrics", d3apiLogs).Methods("POST")
+	log.Println(http.ListenAndServe(*listenAddress, router))
+}
+
+type Data struct {
+	Jobname  string `json:"jobname"`
+	Jobid    string `json:"jobid"`
+	Username string `json:"username"`
+	Metrics  string `json: "metrics"`
+}
+
+func d3apiLogs(w http.ResponseWriter, r *http.Request) {
+	rdata, _ := ioutil.ReadAll(r.Body)
+	rs := strings.Split(string(rdata), "\n")
+	log.Println(rs)
+	for _, r := range rs {
+		var data map[string]interface{}
+		err := json.Unmarshal([]byte(r), &data)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		metrics := strings.Split(data["metrics"].(string), "-98-")
+		for _, metric := range metrics {
+			if data[metric] != nil {
+				re := regexp.MustCompile(`[+-]?([0-9]*[.])?[0-9]+`)
+				s, err := strconv.ParseFloat(string(re.Find([]byte(data[metric].(string)))), 64)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				log.Printf("%s  -> %s", s, data[metric])
+			}
+		}
+		log.Println("-----------------------------------------------")
+	}
+	/* logs := strings.Split(string(r), ",")
+		    for index, log1 := range logs{
+			if index > len(logs)-2{
+				break
+			}
+		    	for _, metric := range metrics{
+				if strings.Contains(log1, metric) == true{
+					//log.Println("log data is ", log1)
+					finaldata := strings.Split(log1, ":")
+					log.Printf("%+v  = %+v\n", metric, finaldata[len(finaldata)-1])
+					break
+				}
+			}
+		    }
+	       }/*
+		        if len(eles) >= 6 {
+				ss := trimQuote(eles[0])
+				s,err:= strconv.ParseFloat(ss, 64)
+				if err != nil{
+					log.Println(err)
+					continue
+				}
+				labels := map[string]string{
+					"jobname": trimQuote(eles[1]),
+					"username":trimQuote(eles[2]),
+					"jobid": trimQuote(eles[3]),
+					"step1": trimQuote(eles[5]),
+				}
+				if trimQuote(eles[4]) == "step" && s == 0{
+					continue
+				}
+				record_name := "test_" + trimQuote(eles[4])
+				records := prometheus.NewGauge(prometheus.GaugeOpts{
+					Name: record_name,
+					Help: "fluentd to pushgateway",
+					ConstLabels: labels,
+				})
+				registry := prometheus.NewRegistry()
+				registry.MustRegister(records)
+				pusher := push.New("http://192.168.200.103:30582", trimQuote(eles[1])).Gatherer(registry)
+				records.Set(s)
+				if err := pusher.Add(); err != nil {
+					fmt.Println("Could not push to Pushgateway:", err)
+				}
+			}
+		}*/
+}
+

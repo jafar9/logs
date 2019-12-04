@@ -1,0 +1,100 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: test
+  labels:
+    app: logstash
+data:
+  logstash.conf: |-
+    input{
+      beats {
+       port => 5044
+      }
+    }
+
+    filter {
+       mutate {
+         remove_field => [ "@version","tags"]
+         add_field => {
+           "[@metadata][no_show]"=> "%{[Jobid]}"
+         }
+       }
+    }
+
+    output {
+     s3 {
+        endpoint => "http://minio-service:9000"
+        access_key_id => "dkube"
+        secret_access_key => "dkube123"
+        bucket => "logs"
+        prefix => "/%{[@metadata][no_show]}"
+        size_file => 6000
+        time_file => 20
+        codec => "json_lines"
+        validate_credentials_on_root_bucket => false
+        additional_settings => {
+         "force_path_style" => true
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: test
+  labels:
+    app: logstash
+spec:
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+      - name: logstash
+        image: docker.elastic.co/logstash/logstash:6.5.0
+        imagePullPolicy: IfNotPresent
+        command:
+            - bash
+            - -c
+            - |
+              > config/logstash.yml;
+              > pipeline/logstash.conf;
+              cat /etc/config_data/logstash.conf >> pipeline/logstash.conf;
+              logstash -f pipeline/logstash.conf
+        securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config_data
+          readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            defaultMode: 0600
+            name: logstash-config
+     
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+  namespace: test
+spec:
+  ports:
+  - name: logstash
+    port: 5044
+    protocol: TCP
+    targetPort: 5044
+  selector:
+    app: logstash
+  type: NodePort
+
+---

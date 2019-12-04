@@ -1,0 +1,119 @@
+apiVersion: v1
+data:
+  fluent.conf: |
+    # <source>
+    #  @type tail
+    #  path /var/log/containers/*.log
+    #  pos_file /var/log/fluentd-containers-jobs.log.pos
+    #  time_key time
+    #  time_format %Y-%m-%dT%H:%M:%S
+    #  refresh_interval 1s
+    #  open_on_every_update true
+    #  enable_stat_watcher false
+    #  rotate_wait 2
+    #  tag kubernetes_jobs.*
+    #  @label @JOBS
+    #  format json
+    #  read_from_head true
+    # </source>
+
+    <source>
+     @type tail
+     path /var/log/containers/*.log
+     pos_file /var/log/fluentd-containers-metrics.log.pos
+     time_key time
+     time_format %Y-%m-%dT%H:%M:%S
+     refresh_interval 1s
+     open_on_every_update true
+     enable_stat_watcher false
+     rotate_wait 2
+     tag kubernetes_metrics.*
+     @label @METRICS
+     format json
+     read_from_head true
+    </source>
+
+    <label @JOBS>
+      <filter kubernetes_jobs.**>
+          @type kubernetes_metadata
+      </filter>
+
+      <filter kubernetes_jobs.**>
+         @type grep
+         <regexp>
+            key $.kubernetes.labels.logger
+            pattern /(^dkubepl|^dkube)/
+         </regexp>
+      </filter>
+
+      <filter kubernetes_jobs.**>
+             @type record_modifier
+             enable_ruby
+             <record>
+                 plpath pllauncher
+                 tpath jobs
+                 jobname ${record.dig("kubernetes", "labels", "jobname") ? record.dig("kubernetes", "labels", "jobname") : record.dig("kubernetes", "labels", "runid") }
+
+                 fpath ${record.dig("kubernetes", "labels", "runid")? record.dig("plpath") : record.dig("tpath")}
+
+                 username ${record.dig("kubernetes", "labels", "username") ? record.dig("kubernetes", "labels", "username") : record.dig("kubernetes", "labels", "workflows_argoproj_io/workflow") }
+
+                 container ${record.dig("kubernetes", "container_name")}
+
+                 training_log ${record.dig("kubernetes", "labels", "tf-replica-type")}-${record.dig("kubernetes", "labels", "tf-replica-index")}:  ${record.dig("log")}
+
+                 message ${record.dig("kubernetes", "labels", "runid") ? record.dig("log") : record.dig("training_log") }
+             </record>
+             remove_keys log, stream, docker, kubernetes
+      </filter>
+
+      <match kubernetes_jobs.**>
+          @type stdout
+      </match>
+    </label>
+
+    <label @METRICS>
+      <filter kubernetes_metrics.**>
+          @type kubernetes_metadata
+      </filter>
+
+      <filter kubernetes_metrics.**>
+         @type grep
+         <regexp>
+            key $.kubernetes.labels.logger
+            pattern /^dkube$/
+         </regexp>
+      </filter>
+
+      <filter kubernetes_metrics.**>
+         @type grep
+         <regexp>
+            key $.log
+            pattern /(.*) = (.*),/
+         </regexp>
+      </filter>
+
+
+      <filter kubernetes_jobs.**>
+             @type record_modifier
+             enable_ruby
+             remove_keys  stream, docker, kubernetes
+      </filter>
+
+      <match kubernetes_metrics.**>
+            @type http
+            endpoint http://logstash.dkube:8080/
+            open_timeout 2
+            <format>
+                   @type json
+            </format>
+            <buffer>
+              flush_interval 10s
+            </buffer>
+      </match>
+    </label>
+kind: ConfigMap
+metadata:
+  name: dkube-test-collector
+  namespace: dkube
+

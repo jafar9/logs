@@ -1,0 +1,26 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+ name: cisco-modelpv
+spec:
+ #storageClassName: local
+ capacity:
+   storage: 20Gi
+ accessModes:
+   - ReadWriteOnce
+ hostPath:
+   path: "/tmp/cisco-models"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+ name: model-pvc
+ namespace: kubeflow
+spec:
+ #storageClassName: local
+ accessModes:
+   - ReadWriteOnce
+ resources:
+   requests:
+     storage: 20Gi
+

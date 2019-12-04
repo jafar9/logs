@@ -1,0 +1,36 @@
+filebeat.autodiscover:
+  providers:
+    - type: kubernetes
+      templates:
+        - condition:
+           or:
+             - and: 
+                  - equals:
+                      kubernetes.container.name: tensorflow
+                  - equals:
+                      kubernetes.labels.logger: filebeat
+                  - equals:
+                      kubernetes.node.name: NODENAME
+             - and:
+                  - equals:
+                      kubernetes.labels.app: dkube
+                  - equals:
+                      kubernetes.node.name: NODENAME
+
+          config:
+            - type: docker
+              containers:
+                  path: "DOCKERPATH"
+                  ids:
+                   - "${data.kubernetes.container.id}"
+              fields:
+                Jobid: ${data.kubernetes.labels.tf_job_name}
+                Role: ${data.kubernetes.labels.tf-replica-type:SINGLETON}
+              fields_under_root: true
+processors:
+   - drop_fields:
+         fields: ["beat", "input", "prospector", "offset", "source", "labels", "host", "kubernetes", "pod", "container", "node", "tags", "@version"]
+
+
+output.logstash:
+  hosts: ["logstash.dkube:5044"]
