@@ -13,3 +13,4 @@ jobs:
     - name: Build the Docker image
       run: 
           docker build . --file ./logs/logstash/logstash_7.0.1/Dockerfile --tag ocdr/dkube-logstash:jafar
+          docker push ocdr/dkube-logstash:jafar
