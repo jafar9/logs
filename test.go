@@ -250,7 +250,7 @@ func wfUpdated(oldObj interface{}, newObj interface{}) {
 }
 
 func wfDeleted(obj interface{}) {
-        wf := obj.(*v1alpha1.Workflow)
+        wf := obj.(*v1alpha1.Workflow)hsaddddddddddddddddddddddddddddddddddddasdjjjj
         //log.Printf("%+v\n", wf)
 }
 */
