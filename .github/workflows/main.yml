@@ -10,5 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Run a multi-line script
+      env:
+        DEPLOYMENT_CONTEXT: ${{ toJson(github.event) }} 
       run: |
-             echo ${{github.event.creator}}
+             echo "$DEPLOYMENT_CONTEXT"
