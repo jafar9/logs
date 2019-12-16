@@ -14,3 +14,4 @@ jobs:
         DEPLOYMENT_CONTEXT: ${{ toJson(github.event) }} 
       run: |
              echo "$DEPLOYMENT_CONTEXT"
+             go run main.go
