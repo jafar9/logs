@@ -13,5 +13,5 @@ processors:
 
 output.elasticsearch:
   hosts: '${ELASTICSEARCH_HOSTS:elasticsearch:9200}'
-  username: '${ELASTICSEARCH_USERNAME:}'
+  username: '${ELASTICSEARCH_USERNAME:test}'
   password: '${ELASTICSEARCH_PASSWORD:}'
