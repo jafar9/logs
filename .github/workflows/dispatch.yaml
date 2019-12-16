@@ -6,9 +6,8 @@ jobs:
   manual_deploy:
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v1
-        if: github.event.action == 'dkube'
       - name: respository dispatch testing
+        if: github.event.action == 'dkube'
         env:
           DISPATCH_PAYLOAD: ${{ toJson(github.event) }} 
         run: |
