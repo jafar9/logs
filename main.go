@@ -36,7 +36,7 @@ var (
 const workspace = "dkube_runs"
 
 type MetaLogger struct {
-        // Metadata gRPC client.
+        // Metadata gRPC client for conencting metadb.
         kfmdClient storepb.MetadataStoreServiceClient
         typeID     int64
         atype      string
