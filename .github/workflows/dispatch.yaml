@@ -1,0 +1,14 @@
+name: dispatch
+
+on: [repository_dispatch]
+
+jobs:
+  manual_deploy:
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v1
+      - name: respository dispatch testing
+        env:
+          DISPATCH_PAYLOAD: ${{ toJson(github.event) }} 
+        run: |
+             echo "$DISPATCH_PAYLOAD"
