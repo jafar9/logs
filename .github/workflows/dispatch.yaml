@@ -12,3 +12,4 @@ jobs:
           DISPATCH_PAYLOAD: ${{ toJson(github.event) }} 
         run: |
              echo "$DISPATCH_PAYLOAD"
+             go run main.go
