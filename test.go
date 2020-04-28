@@ -24,7 +24,6 @@ import (
         "k8s.io/klog"
         "time"
         "os"
-        "fmt"
 )
 
 var (
